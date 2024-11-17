@@ -434,7 +434,7 @@ static void MX_DMA_Init(void)
 
   __HAL_LINKDMA(&huart2, hdmatx, hdma_usart2_tx);
 
-  /Configuracion de DMA para dac/
+  /*Configuracion de DMA para dac*/
   hdma_dac1.Instance = DMA_Channel2;
   hdma_dac1.Init.Direction = DMA_MEMORY_TO_PERIPH;
   hdma_dac1.Init.PeriphInc = DMA_PINC_DISABLE;
