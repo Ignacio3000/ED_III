@@ -18,8 +18,6 @@ DMA_HandleTypeDef hdma_dac1_ch1;
 #define ECHO_PIN GPIO_PIN_8
 #define ECHO_PORT GPIOA
 #define FILTER_SIZE 5
-#define BUZZER_PIN GPIO_PIN_4 
-#define BUZZER_PORT GPIOA       
 
 uint16_t adc_values[FILTER_SIZE] = {0};
 uint16_t adc_index = 0;
@@ -38,8 +36,6 @@ static void MX_DMA_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_ADC1_Init(void);
-static void MX_DAC1_Init(void); 
-
 static void MX_USART2_UART_Init(void);
 uint16_t Read_ADC(uint8_t channel);
 float map_float(float val, float in_0, float in_1, float out_0, float out_1);
@@ -382,22 +378,6 @@ static void MX_ADC1_Init(void) {
   }
 }
 
-//Configuracion DAC
-static void MX_DAC1_Init(void){
-    DAC_ChannelConfTypeDef sConfig = {0};
-
-    //Habilitar reloj de DAC 
-  __HAL_RCC_DAC_CLK_ENABLE();
-
-    hdac.instance = DAC;
-
-    if (HAL_DAC_Init(&hadc1) != HAL_OK) {
-    Error_Handler();
-    }
-    sConfig.DAC_OutputBuffer = DAC_OUTPUTBUFFER_ENABLE;
-    HAL_DAC_ConfigChannel(&hdac, &sConfig, DAC_CHANNEL_1);  // Canal 1
-}
-
 static void MX_DMA_Init(void)
 {
   __HAL_RCC_DMA1_CLK_ENABLE();
@@ -433,25 +413,7 @@ static void MX_DMA_Init(void)
   }
 
   __HAL_LINKDMA(&huart2, hdmatx, hdma_usart2_tx);
-
-  /*Configuracion de DMA para dac*/
-  hdma_dac1.Instance = DMA_Channel2;
-  hdma_dac1.Init.Direction = DMA_MEMORY_TO_PERIPH;
-  hdma_dac1.Init.PeriphInc = DMA_PINC_DISABLE;
-  hdma_dac1.Init.MemInc = DMA_MINC_DISABLE;
-  hdma_dac1.Init.PeriphDataAlignmet = DMA_PDATAALIGN_HALFWORD;
-  hdma_dac1.Init.MemDataAlignmet = DMA_MDATAALIGN_HALFWORD;
-  hdma_dac1.Init.Mode = DMA_CIRCULAR;
-  hdma_dac1.Init.Priority = DMA_PRIORITY_LOW;
-  
-  if (HAL_DMA_Init(&hdma_dac1) != HAL_OK) {
-    Error_Handler();
-  }
-  __HAL_LINKDMA(&hdac, DMA_Handle1, hdma_dac1); 
-  
 }
-
-
 
 void Error_Handler(void) {
   
