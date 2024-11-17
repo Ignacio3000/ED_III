@@ -10,12 +10,16 @@ UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_adc1;
 DMA_HandleTypeDef hdma_usart2_tx;
 
+DAC_HandleTypeDef hdac1;
+DMA_HandleTypeDef hdma_dac1_ch1;
 
 #define TRIG_PIN GPIO_PIN_9
 #define TRIG_PORT GPIOA
 #define ECHO_PIN GPIO_PIN_8
 #define ECHO_PORT GPIOA
 #define FILTER_SIZE 5
+#define BUZZER_PIN GPIO_PIN_4 //DAC OUTPUT */
+#define BUZZER_PORT GPIOA     /******* */  
 
 uint16_t adc_values[FILTER_SIZE] = {0};
 uint16_t adc_index = 0;
@@ -34,6 +38,8 @@ static void MX_DMA_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_ADC1_Init(void);
+static void MX_DAC1_Init(void); /***** */
+
 static void MX_USART2_UART_Init(void);
 uint16_t Read_ADC(uint8_t channel);
 float map_float(float val, float in_0, float in_1, float out_0, float out_1);
@@ -52,12 +58,16 @@ int main(void) {
   MX_ADC1_Init();
   MX_DMA_Init();
   MX_USART2_UART_Init();
+  MX_DAC1_Init(); /*** */
 
   // Iniciar PWM para el servomotor
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
 
   // Iniciar TIM1 para medir ECHO
   HAL_TIM_Base_Start(&htim1);
+
+  //Iniciar DAC para el buzzer
+  HAL_DAC_Start(&hdac1 , DAC_CHANNEL_1);
 
   // Asegurarse de que TRIG esté bajo inicialmente
   HAL_GPIO_WritePin(TRIG_PORT, TRIG_PIN, GPIO_PIN_RESET);
@@ -79,7 +89,7 @@ int main(void) {
       // Calcular el promedio de los últimos valores de ADC
       uint32_t sum = 0;
       for (int i = 0; i < FILTER_SIZE; i++) {
-          sum += adc_values[i];
+        sum += adc_values[i];
       }
       uint16_t adc_avg = sum / FILTER_SIZE;
 
@@ -114,6 +124,10 @@ int main(void) {
     snprintf(uart_buffer, sizeof(uart_buffer), "%d,%d.\r\n", angle, Distance);
     HAL_UART_Transmit(&huart2, (uint8_t *)uart_buffer, strlen(uart_buffer),
                       HAL_MAX_DELAY);
+
+    //Activar el buzzer en funcion de la distancia
+    uint8_t dac_value = (uint8_t)map_float(Distance, 0, 200, 0, 255); // Rango de 0 a 200 cm mapeado a 8 bits
+    HAL_DAC_SetValue(&hdac1 , DAC_CHANNEL_1 , DAC_ALING_8B_R , dac_value);//Aling 8 bit right
 
   }
 }
@@ -190,6 +204,9 @@ static void MX_GPIO_Init(void) {
   // Habilitar reloj de ADC1
   __HAL_RCC_ADC1_CLK_ENABLE();
 
+  //Habilitar reloj de DAC 
+  __HAL_RCC_DAC_CCL_ENABLE();
+
   // Configurar el pin ECHO (PA8) como entrada
   GPIO_InitStruct.Pin = ECHO_PIN;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
@@ -225,6 +242,11 @@ static void MX_GPIO_Init(void) {
   GPIO_InitStruct.Pin = GPIO_PIN_1;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  //Configurar el pin DAC(PA4) como salida analógica
+   GPIO_InitStruct.GPIO_Pin = GPIO_Pin_4;
+   GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AIN; // Modo Analógico
+   GPIO_Init(GPIOA, &GPIO_InitStruct);
 }
 
 static void MX_TIM1_Init(void) {
@@ -360,6 +382,22 @@ static void MX_ADC1_Init(void) {
   }
 }
 
+/Configuracion DAC/
+static void MX_DAC1_Init(void){
+    DAC_ChannelConfTypeDef sConfig = {0};
+
+    //Habilitar reloj de DAC 
+  __HAL_RCC_DAC_CLK_ENABLE();
+
+    hdac.instance = DAC;
+
+    if (HAL_DAC_Init(&hadc1) != HAL_OK) {
+    Error_Handler();
+    }
+    sConfig.DAC_OutputBuffer = DAC_OUTPUTBUFFER_ENABLE;
+    HAL_DAC_ConfigChannel(&hdac, &sConfig, DAC_CHANNEL_1);  // Canal 1
+}
+
 static void MX_DMA_Init(void)
 {
   __HAL_RCC_DMA1_CLK_ENABLE();
@@ -395,10 +433,28 @@ static void MX_DMA_Init(void)
   }
 
   __HAL_LINKDMA(&huart2, hdmatx, hdma_usart2_tx);
+
+  /Configuracion de DMA para dac/
+  hdma_dac1.Instance = DMA_Channel2;
+  hdma_dac1.Init.Direction = DMA_MEMORY_TO_PERIPH;
+  hdma_dac1.Init.PeriphInc = DMA_PINC_DISABLE;
+  hdma_dac1.Init.MemInc = DMA_MINC_DISABLE;
+  hdma_dac1.Init.PeriphDataAlignmet = DMA_PDATAALIGN_HALFWORD;
+  hdma_dac1.Init.MemDataAlignmet = DMA_MDATAALIGN_HALFWORD;
+  hdma_dac1.Init.Mode = DMA_CIRCULAR;
+  hdma_dac1.Init.Priority = DMA_PRIORITY_LOW;
+  
+  if (HAL_DMA_Init(&hdma_dac1) != HAL_OK) {
+    Error_Handler();
+  }
+  __HAL_LINKDMA(&hdac, DMA_Handle1, hdma_dac1); 
+  
 }
 
+
+
 void Error_Handler(void) {
-  // Puedes agregar un LED de error aquí o mensajes de depuración
+  
   while (1) {
     // Blink LED de error o similar
   }
@@ -416,6 +472,6 @@ void Transmit_ADC_Data(void) {
 
 #ifdef USE_FULL_ASSERT
 void assert_failed(uint8_t *file, uint32_t line) {
-  // Puedes agregar una implementación para el manejo de assert_failed
+  
 }
 #endif
