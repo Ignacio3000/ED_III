@@ -1,0 +1,36 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "compilerPath": "C:\\Program Files\\LLVM\\bin\\clang.exe",
+            "cStandard": "c17",
+            "cppStandard": "c++14",
+            "intelliSenseMode": "windows-clang-x64",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "C:\\Users\\ignaf\\OneDrive\\Documents\\Ignacio\\Universidad\\4\\Digital 3\\MicrocontrollerExamples\\LPC1769\\ADC\\lib\\CMSISv2p00_LPC17xx\\drivers"
+            ]
+        },
+        {
+            "name": "ad",
+            "includePath": [
+                "${workspaceFolder}/**"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "compilerPath": "C:\\Program Files\\LLVM\\bin\\clang.exe",
+            "cStandard": "c17",
+            "cppStandard": "c++14",
+            "intelliSenseMode": "windows-clang-x64"
+        }
+    ],
+    "version": 4
+}
